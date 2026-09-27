@@ -1,0 +1,3 @@
+SUPABASE_URL=jdbc:postgresql://aws-0-ap-northeast-2.pooler.supabase.com:5432/postgres?sslmode=require
+SUPABASE_USERNAME=postgres.xjpaggjkpfzrzsfkuicc
+SUPABASE_PASSWORD=kwusoftware2025
