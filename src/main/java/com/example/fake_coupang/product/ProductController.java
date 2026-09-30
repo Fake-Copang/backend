@@ -56,4 +56,18 @@ public class ProductController {
         productService.deleteProduct(id);
         return ResponseEntity.noContent().build(); // 204 No Content 반환
     }
+
+    // 낮은 가격 상품 TOP N 조회 (GET /api/products/top/cheap?n=5)
+    @GetMapping("/top/cheap")
+    public ResponseEntity<List<Product>> getCheapProducts(
+            @RequestParam int n) {
+        return ResponseEntity.ok(productService.getCheapProducts(n));
+    }
+
+    // 높은 가격 상품 TOP N 조회 (GET /api/products/top/expensive?n=5)
+    @GetMapping("/top/expensive")
+    public ResponseEntity<List<Product>> getExpensiveProducts(
+            @RequestParam int n) {
+        return ResponseEntity.ok(productService.getExpensiveProducts(n));
+    }
 }

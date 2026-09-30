@@ -72,6 +72,22 @@ public class ProductService {
         return productRepository.save(product);
     }
 
+    // 낮은 가격 상품 TOP N 조회
+    public List<Product> getCheapProducts(int n) {
+        return productRepository.findAllByOrderByPriceAsc()
+                .stream()
+                .limit(n)
+                .toList();
+    }
+
+    // 높은 가격 상품 TOP N 조회
+    public List<Product> getExpensiveProducts(int n) {
+        return productRepository.findAllByOrderByPriceDesc()
+                .stream()
+                .limit(n)
+                .toList();
+    }
+
     // 삭제
     public void deleteProduct(Long id) {
         productRepository.deleteById(id);
