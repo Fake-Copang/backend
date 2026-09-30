@@ -50,6 +50,28 @@ public class ProductService {
         return productRepository.save(product);
     }
 
+    // 상품 이름 수정
+    public Product updateName(Long id, String name) {
+
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("상품 없음"));
+
+        product.updateName(name);
+
+        return productRepository.save(product);
+    }
+
+    // 상품 가격 수정
+    public Product updatePrice(Long id, Integer price) {
+
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("상품 없음"));
+
+        product.updatePrice(price);
+
+        return productRepository.save(product);
+    }
+
     // 삭제
     public void deleteProduct(Long id) {
         productRepository.deleteById(id);

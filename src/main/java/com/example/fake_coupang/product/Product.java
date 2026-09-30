@@ -39,7 +39,7 @@ public class Product {
     }
 
     // 수량 변경이나 정보 수정을 위한 비즈니스 메서드예시
-    public void updateQuantity(Integer quantity) {
-        this.quantity = quantity;
-    }
+    public void updateQuantity(Integer quantity) {this.quantity = quantity;}
+    public void updatePrice(Integer price) {this.price = price;}
+    public void updateName(String name) {this.name = name;}
 }

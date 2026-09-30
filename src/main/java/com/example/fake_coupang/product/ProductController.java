@@ -35,6 +35,22 @@ public class ProductController {
         return ResponseEntity.ok(productService.updateQuantity(id, quantity));
     }
 
+    // 상품 이름 수정 (PATCH /api/products/{id}/name?name=수정할이름)
+    @PatchMapping("/{id}/name")
+    public ResponseEntity<Product> updateName(
+            @PathVariable Long id,
+            @RequestParam String name) {
+        return ResponseEntity.ok(productService.updateName(id, name));
+    }
+
+    // 상품 가격 수정 (PATCH /api/products/{id}/price?price=15000)
+    @PatchMapping("/{id}/price")
+    public ResponseEntity<Product> updatePrice(
+            @PathVariable Long id,
+            @RequestParam Integer price) {
+        return ResponseEntity.ok(productService.updatePrice(id, price));
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteProduct(@PathVariable Long id) {
         productService.deleteProduct(id);
