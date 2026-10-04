@@ -70,4 +70,16 @@ public class ProductController {
             @RequestParam int n) {
         return ResponseEntity.ok(productService.getExpensiveProducts(n));
     }
+
+    // 상품 추가 (POST /api/products?name=상품명&price=10000&quantity=5)
+    @PostMapping
+    public ResponseEntity<Product> addProduct(
+            @RequestParam String name,
+            @RequestParam Integer price,
+            @RequestParam Integer quantity) {
+
+        return ResponseEntity.ok(
+                productService.addProduct(name, price, quantity)
+        );
+    }
 }
