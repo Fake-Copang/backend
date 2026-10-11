@@ -7,17 +7,18 @@ import lombok.Setter;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "order")
+@Table(name = "orders")
 @Getter @Setter
 @NoArgsConstructor
 public class Order {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-//    // 사용자 ID (FK 연관관계를 객체로 매핑하려면 @ManyToOne을 사용)
-//    @Column(name = "user_id", nullable = false)
-//    private Long userId;
+    // 사용자 ID (추후 User 엔티티와 FK 연동)
+    @Column(name = "user_id", nullable = false)
+    private Long userId;
 
     @Column(name = "total_price", nullable = false)
     private Long totalPrice;
@@ -30,5 +31,5 @@ public class Order {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
-    private OrderStatus status; // ORDERED(주문 완료), SHIPPING(배송 중), DELIVERED(배송 완료)
+    private OrderStatus status; // ORDERED, SHIPPING, DELIVERED
 }
