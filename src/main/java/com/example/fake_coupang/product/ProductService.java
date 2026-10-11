@@ -1,7 +1,5 @@
-package com.example.fake_coupang.Service;
+package com.example.fake_coupang.product;
 
-import com.example.fake_coupang.product.Product;
-import com.example.fake_coupang.product.ProductRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 

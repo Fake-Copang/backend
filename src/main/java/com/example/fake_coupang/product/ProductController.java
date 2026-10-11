@@ -1,5 +1,4 @@
 package com.example.fake_coupang.product;
-import com.example.fake_coupang.Service.ProductService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
