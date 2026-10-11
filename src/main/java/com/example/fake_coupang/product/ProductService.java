@@ -1,3 +1,4 @@
+
 package com.example.fake_coupang.product;
 
 import org.springframework.stereotype.Service;
@@ -117,4 +118,60 @@ public class ProductService {
     public void deleteProduct(Long id) {
         productRepository.deleteById(id);
     }
+
+    // 상품 3D 크기 수정
+    public Product updateSize(Long id, Integer sizeX, Integer sizeY, Integer sizeZ) {
+
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("상품 없음"));
+
+        product.updateSize(sizeX, sizeY, sizeZ);
+
+        return productRepository.save(product);
+    }
+
+    // 상품 3D 모델 URL 수정
+    public Product updateModelUrl(Long id, String modelUrl) {
+
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("상품 없음"));
+
+        product.updateModelUrl(modelUrl);
+
+        return productRepository.save(product);
+    }
+
+    // 상품 이미지 URL 수정
+    public Product updateImageUrl(Long id, String imageUrl) {
+
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("상품 없음"));
+
+        product.updateImageUrl(imageUrl);
+
+        return productRepository.save(product);
+    }
+
+    // 상품 카테고리 수정
+    public Product updateCategory(Long id, String category) {
+
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("상품 없음"));
+
+        product.updateCategory(category);
+
+        return productRepository.save(product);
+    }
+
+    // 상품 태그 수정
+    public Product updateTags(Long id, List<String> tags) {
+
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("상품 없음"));
+
+        product.updateTags(tags);
+
+        return productRepository.save(product);
+    }
+
 }

@@ -1,3 +1,4 @@
+
 package com.example.fake_coupang.product;
 
 import jakarta.persistence.*;
@@ -73,4 +74,32 @@ public class Product {
     public void updateQuantity(Integer quantity) {this.quantity = quantity;}
     public void updatePrice(Integer price) {this.price = price;}
     public void updateName(String name) {this.name = name;}
+
+    // 상품 3D 크기 수정
+    public void updateSize(Integer sizeX, Integer sizeY, Integer sizeZ) {
+        this.sizeX = sizeX;
+        this.sizeY = sizeY;
+        this.sizeZ = sizeZ;
+    }
+
+    // 상품 3D 모델 URL 수정
+    public void updateModelUrl(String modelUrl) {
+        this.modelUrl = modelUrl;
+    }
+
+    // 상품 이미지 URL 수정
+    public void updateImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
+    }
+
+    // 상품 카테고리 수정
+    public void updateCategory(String category) {
+        this.category = category;
+    }
+
+    // 상품 태그 수정
+    public void updateTags(List<String> tags) {
+        this.tags = tags;
+    }
+
 }
