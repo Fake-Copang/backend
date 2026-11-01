@@ -1,3 +1,4 @@
+
 package com.example.fake_coupang.product;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -81,4 +82,47 @@ public class ProductController {
                 productService.addProduct(name, price, quantity)
         );
     }
+
+    // 상품 3D 크기 수정 (PATCH /api/products/{id}/size?sizeX=10&sizeY=20&sizeZ=30)
+    @PatchMapping("/{id}/size")
+    public ResponseEntity<Product> updateSize(
+            @PathVariable Long id,
+            @RequestParam Integer sizeX,
+            @RequestParam Integer sizeY,
+            @RequestParam Integer sizeZ) {
+        return ResponseEntity.ok(productService.updateSize(id, sizeX, sizeY, sizeZ));
+    }
+
+    // 상품 3D 모델 URL 수정 (PATCH /api/products/{id}/model-url?modelUrl=chair.glb)
+    @PatchMapping("/{id}/model-url")
+    public ResponseEntity<Product> updateModelUrl(
+            @PathVariable Long id,
+            @RequestParam String modelUrl) {
+        return ResponseEntity.ok(productService.updateModelUrl(id, modelUrl));
+    }
+
+    // 상품 이미지 URL 수정 (PATCH /api/products/{id}/image-url?imageUrl=chair.png)
+    @PatchMapping("/{id}/image-url")
+    public ResponseEntity<Product> updateImageUrl(
+            @PathVariable Long id,
+            @RequestParam String imageUrl) {
+        return ResponseEntity.ok(productService.updateImageUrl(id, imageUrl));
+    }
+
+    // 상품 카테고리 수정 (PATCH /api/products/{id}/category?category=가구)
+    @PatchMapping("/{id}/category")
+    public ResponseEntity<Product> updateCategory(
+            @PathVariable Long id,
+            @RequestParam String category) {
+        return ResponseEntity.ok(productService.updateCategory(id, category));
+    }
+
+    // 상품 태그 수정 (PATCH /api/products/{id}/tags)
+    @PatchMapping("/{id}/tags")
+    public ResponseEntity<Product> updateTags(
+            @PathVariable Long id,
+            @RequestBody List<String> tags) {
+        return ResponseEntity.ok(productService.updateTags(id, tags));
+    }
+
 }
