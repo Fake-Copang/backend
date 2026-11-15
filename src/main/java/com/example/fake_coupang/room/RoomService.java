@@ -387,32 +387,30 @@ public class RoomService {
         throw bad("INVALID_KIND", id);
     }
 
+
     private void validate(List<Candidate> candidates) {
 
         Map<String, String> layers = new HashMap<>();
 
         for (Candidate c : candidates) {
+
             if (c.surface() != PlacementSurface.FLOOR) {
                 layers.put(c.id(), c.surface().name());
                 continue;
             }
 
-            String layer = "FLOOR";
+            String layer = "floor";
 
             if (c.spec().isStackable()) {
-                List<Candidate> bases = candidates.stream()
+
+                boolean hasBase = candidates.stream()
                         .filter(b -> !b.id().equals(c.id()))
                         .filter(b -> b.surface() == PlacementSurface.FLOOR)
                         .filter(b -> b.spec().isSurface())
-                        .filter(b -> b.rect().contains(c.rect()))
-                        .toList();
+                        .anyMatch(b -> b.rect().contains(c.rect()));
 
-                if (bases.size() > 1) {
-                    throw bad("AMBIGUOUS_SURFACE", c.id());
-                }
-
-                if (!bases.isEmpty()) {
-                    layer = "TOP:" + bases.get(0).id();
+                if (hasBase) {
+                    layer = "top";
                 }
             }
 
@@ -420,9 +418,11 @@ public class RoomService {
         }
 
         for (int i = 0; i < candidates.size(); i++) {
+
             Candidate a = candidates.get(i);
 
             for (int j = i + 1; j < candidates.size(); j++) {
+
                 Candidate b = candidates.get(j);
 
                 if (!layers.get(a.id()).equals(layers.get(b.id()))) {
@@ -435,4 +435,5 @@ public class RoomService {
             }
         }
     }
+
 }
