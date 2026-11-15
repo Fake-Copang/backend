@@ -10,10 +10,11 @@ import lombok.Setter;
 @Entity
 @Table(
         name = "room_placement",
-        uniqueConstraints = { // 동일한 주문 상품 항목이 하나의 방에 중복으로 배치되는 것을 DB에서 차단
+        uniqueConstraints = {
+                // 동일한 주문 항목의 특정 수량 단위(unit_index)가 하나의 방에 중복으로 배치되는 것을 방지
                 @UniqueConstraint(
-                        name = "uk_room_placement_room_order_item",
-                        columnNames = {"room_id", "order_item_id"}
+                        name = "uk_room_placement_room_order_item_unit",
+                        columnNames = {"room_id", "order_item_id", "unit_index"}
                 )
         }
 )
@@ -36,16 +37,19 @@ public class RoomPlacement {
     @JoinColumn(name = "order_item_id", nullable = false)
     private OrderItem orderItem;
 
+    @Column(name = "unit_index", nullable = false)
+    private Integer unitIndex; // 같은 주문 항목 안에서 몇 번째 물건인지 (1부터 시작)
+
     @Enumerated(EnumType.STRING)
     @Column(name = "surface", nullable = false)
-    private PlacementSurface surface; // 바닥 / 뒤쪽 벽 / 왼쪽 벽
+    private PlacementSurface surface; // 바닥('floor'), 뒤쪽 벽('back'), 왼쪽 벽('left')
 
     @Column(name = "cell_x", nullable = false)
-    private Integer cellX; // 바닥은 x 좌표, 벽은 가로 좌표
+    private Integer cellX; // 바닥이면 x 좌표(0-7), 벽이면 가로 좌표(0-7)
 
     @Column(name = "cell_y", nullable = false)
-    private Integer cellY; // 바닥은 z 좌표, 벽은 세로 좌표
+    private Integer cellY; // 바닥이면 z 좌표(0-7), 벽이면 세로 칸(0-4)
 
     @Column(name = "rotation", nullable = false)
-    private Integer rotation = 0; // 회전값(0~3, 기본값 0)
+    private Integer rotation = 0; // 회전값(0~3, 기본값 0, 벽 상품은 항상 0)
 }
