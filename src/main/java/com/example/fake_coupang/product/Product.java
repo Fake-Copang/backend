@@ -56,7 +56,7 @@ public class Product {
     // --- 새로 추가된 방 배치 관련 컬럼들 ---
     @Enumerated(EnumType.STRING)
     @Column(name = "kind", nullable = false)
-    private ProductKind kind = ProductKind.FLOOR; // 바닥에 놓는 상품 / 벽에 거는 상품 (기본값 'floor')
+    private ProductKind kind = ProductKind.floor; // 바닥에 놓는 상품 / 벽에 거는 상품 (기본값 'floor')
 
     @Column(name = "is_surface", nullable = false)
     private Boolean isSurface = false; // 위에 물건을 올릴 수 있는 가구 (침대, 책상 등)
@@ -79,7 +79,7 @@ public class Product {
         this.name = name;
         this.price = price;
         this.quantity = quantity;
-        this.kind = kind != null ? kind : ProductKind.FLOOR;
+        this.kind = kind != null ? kind : ProductKind.floor;
         this.isSurface = isSurface != null ? isSurface : false;
         this.stackable = stackable != null ? stackable : false;
         this.modelUrl = modelUrl;

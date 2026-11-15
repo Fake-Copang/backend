@@ -128,7 +128,7 @@ public class RoomService {
                 p.put("rot", rp.getRotation());
             } else {
                 p.put("wall",
-                        rp.getSurface() == PlacementSurface.BACK_WALL
+                        rp.getSurface() == PlacementSurface.BACK
                                 ? "back" : "left");
                 p.put("col", rp.getCellX());
                 p.put("row", rp.getCellY());
@@ -364,8 +364,8 @@ public class RoomService {
             }
 
             PlacementSurface surface = switch (p.wall()) {
-                case "back" -> PlacementSurface.BACK_WALL;
-                case "left" -> PlacementSurface.LEFT_WALL;
+                case "back" -> PlacementSurface.BACK;
+                case "left" -> PlacementSurface.LEFT;
                 default -> throw bad("INVALID_WALL", id);
             };
 
