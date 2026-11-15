@@ -1,4 +1,3 @@
-
 package com.example.fake_coupang.product;
 
 import jakarta.persistence.*;
@@ -35,7 +34,7 @@ public class Product {
     @Column(name = "quantity", nullable = false)
     private Integer quantity;
 
-    // 가로/높이/깊이 (상품의 3D 크기)  =>  추후 NOT NULL로 변경
+    // 가로/높이/깊이 (상품의 3D 크기)
     @Column(name = "size_x")
     private Integer sizeX;
 
@@ -54,52 +53,61 @@ public class Product {
     @Column(name = "category")
     private String category;
 
+    // --- 새로 추가된 방 배치 관련 컬럼들 ---
+    @Enumerated(EnumType.STRING)
+    @Column(name = "kind", nullable = false)
+    private ProductKind kind = ProductKind.FLOOR; // 바닥에 놓는 상품 / 벽에 거는 상품 (기본값 'floor')
+
+    @Column(name = "is_surface", nullable = false)
+    private Boolean isSurface = false; // 위에 물건을 올릴 수 있는 가구 (침대, 책상 등)
+
+    @Column(name = "stackable", nullable = false)
+    private Boolean stackable = false; // 가구 위에 올라갈 수 있는 작은 물건 (신발, 노트북 등)
+    // -------------------------------------------------------------
+
     // Supabase(PostgreSQL)의 json 또는 json 컬럼과 매핑 (NULL 허용)
-    // @JdbcTypeCode(SqlTypes.JSON):
-    // 하이버네이트가 자바의 List<String>을 자동으로 JSON 문자열로 직렬화(Serialization)하고,
-    // DB에서 읽을 때 다시 List<String>으로 역직렬화
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "tags", columnDefinition = "json")
     private List<String> tags;
 
     @Builder
-    public Product(Long dummyId, String name, Integer price, Integer quantity) {
+    public Product(Long dummyId, String name, Integer price, Integer quantity,
+                   ProductKind kind, Boolean isSurface, Boolean stackable,
+                   String modelUrl, String imageUrl, String category,
+                   Integer sizeX, Integer sizeY, Integer sizeZ) {
         this.dummyId = dummyId;
         this.name = name;
         this.price = price;
         this.quantity = quantity;
+        this.kind = kind != null ? kind : ProductKind.FLOOR;
+        this.isSurface = isSurface != null ? isSurface : false;
+        this.stackable = stackable != null ? stackable : false;
+        this.modelUrl = modelUrl;
+        this.imageUrl = imageUrl;
+        this.category = category;
+        this.sizeX = sizeX;
+        this.sizeY = sizeY;
+        this.sizeZ = sizeZ;
     }
 
-    // 수량 변경이나 정보 수정을 위한 비즈니스 메서드예시
-    public void updateQuantity(Integer quantity) {this.quantity = quantity;}
-    public void updatePrice(Integer price) {this.price = price;}
-    public void updateName(String name) {this.name = name;}
+    // 기존 비즈니스 수정 메서드들
+    public void updateQuantity(Integer quantity) { this.quantity = quantity; }
+    public void updatePrice(Integer price) { this.price = price; }
+    public void updateName(String name) { this.name = name; }
 
-    // 상품 3D 크기 수정
     public void updateSize(Integer sizeX, Integer sizeY, Integer sizeZ) {
         this.sizeX = sizeX;
         this.sizeY = sizeY;
         this.sizeZ = sizeZ;
     }
 
-    // 상품 3D 모델 URL 수정
-    public void updateModelUrl(String modelUrl) {
-        this.modelUrl = modelUrl;
-    }
+    public void updateModelUrl(String modelUrl) { this.modelUrl = modelUrl; }
+    public void updateImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
+    public void updateCategory(String category) { this.category = category; }
+    public void updateTags(List<String> tags) { this.tags = tags; }
 
-    // 상품 이미지 URL 수정
-    public void updateImageUrl(String imageUrl) {
-        this.imageUrl = imageUrl;
-    }
-
-    // 상품 카테고리 수정
-    public void updateCategory(String category) {
-        this.category = category;
-    }
-
-    // 상품 태그 수정
-    public void updateTags(List<String> tags) {
-        this.tags = tags;
-    }
-
+    // 새로 추가된 배치 속성 수정 메서드
+    public void updateKind(ProductKind kind) { this.kind = kind; }
+    public void updateIsSurface(Boolean isSurface) { this.isSurface = isSurface; }
+    public void updateStackable(Boolean stackable) { this.stackable = stackable; }
 }
