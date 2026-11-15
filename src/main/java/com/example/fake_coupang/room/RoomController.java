@@ -12,7 +12,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/room")
+@RequestMapping("api/room")
 public class RoomController {
 
     private final RoomService roomService;
