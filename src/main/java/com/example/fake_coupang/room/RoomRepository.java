@@ -9,4 +9,6 @@ public interface RoomRepository
         extends JpaRepository<Room, Long> {
 
     Optional<Room> findFirstByOrderByRoomIdAsc();
+
+    Optional<Room> findByUserId(Long userId);
 }
