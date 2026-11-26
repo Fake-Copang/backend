@@ -14,11 +14,13 @@ import com.example.fake_coupang.room.dto.RoomResponse;
 import com.example.fake_coupang.roomPlacement.PlacementSurface;
 import com.example.fake_coupang.roomPlacement.RoomPlacement;
 import com.example.fake_coupang.roomPlacement.RoomPlacementRepository;
+import com.example.fake_coupang.user.User;
 import com.example.fake_coupang.user.UserRepository;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -113,12 +115,16 @@ public class RoomService {
 
     private Room getOrCreateRoom(Long userId) {
 
-        return roomRepository.findByUserId(userId)
+        return roomRepository.findByUser_Id(userId)
                 .orElseGet(() -> {
+                    User user = userRepository.findById(userId)
+                            .orElseThrow(() -> new ResponseStatusException(
+                                    HttpStatus.NOT_FOUND,
+                                    "사용자를 찾을 수 없습니다."
+                            ));
 
                     Room room = new Room();
-
-                    room.setUserId(userId);
+                    room.setUser(user);
                     room.setUpdatedAt(LocalDateTime.now());
 
                     return roomRepository.saveAndFlush(room);

@@ -140,13 +140,11 @@ public class OrderService {
             throw new InsufficientBalanceException();
         }
 
-        user.setVirtualMoney(
-                user.getVirtualMoney() - totalPrice
-        );
+        user.deductVirtualMoney(totalPrice);
 
         Order order = new Order();
 
-        order.setUserId(user.getId());
+        order.setUser(user);
         order.setTotalPrice(totalPrice);
         order.setOrderedAt(LocalDateTime.now());
         order.setEstimatedDeliveryHours(
@@ -192,7 +190,7 @@ public class OrderService {
             );
         }
 
-        return orderRepository.findByUserId(userId)
+        return orderRepository.findByUser_Id(userId)
                 .stream()
                 .map(this::toResponse)
                 .toList();
@@ -259,7 +257,7 @@ public class OrderService {
 
         return new OrderResponse(
                 order.getId(),
-                order.getUserId(),
+                order.getUser().getId(),
                 order.getTotalPrice(),
                 order.getOrderedAt(),
                 order.getEstimatedDeliveryHours(),

@@ -15,13 +15,13 @@ public interface OrderItemRepository
     List<OrderItem> findByOrder_Id(Long orderId);
 
     @Query("""
-        SELECT oi
-        FROM OrderItem oi
-        JOIN FETCH oi.order o
-        JOIN FETCH oi.product p
-        WHERE o.userId = :userId
-          AND o.status = :status
-        ORDER BY oi.id ASC
+            SELECT oi
+            FROM OrderItem oi
+            JOIN FETCH oi.order o
+            JOIN FETCH oi.product p
+            WHERE o.user.id = :userId
+            AND o.status = :status
+            ORDER BY oi.id ASC
         """)
     List<OrderItem> findByUserIdAndOrderStatus(
             @Param("userId") Long userId,
