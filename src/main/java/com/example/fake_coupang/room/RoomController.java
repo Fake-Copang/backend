@@ -12,7 +12,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 @RestController
-@RequestMapping("api/room")
+@RequestMapping("/api/room")
 public class RoomController {
 
     private final RoomService roomService;
@@ -22,22 +22,26 @@ public class RoomController {
     }
 
     @GetMapping
-    public RoomResponse getRoom() {
-        return roomService.getRoom();
+    public RoomResponse getRoom(
+            @RequestParam Long userId
+    ) {
+        return roomService.getRoom(userId);
     }
 
     @PutMapping("/placements")
     public PlacementSaveResponse savePlacements(
+            @RequestParam Long userId,
             @RequestBody PlacementSaveRequest request
     ) {
-        return roomService.save(request);
+        return roomService.save(userId, request);
     }
 
     @ExceptionHandler(RoomService.RoomApiException.class)
     public ResponseEntity<Map<String, Object>> handleRoomError(
             RoomService.RoomApiException e
     ) {
-        Map<String, Object> body = new LinkedHashMap<>();
+        Map<String, Object> body =
+                new LinkedHashMap<>();
 
         body.put("message", e.getMessage());
         body.put("code", e.getCode());

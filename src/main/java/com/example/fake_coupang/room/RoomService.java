@@ -1,6 +1,7 @@
 
 package com.example.fake_coupang.room;
 
+import com.example.fake_coupang.order.OrderStatus;
 import com.example.fake_coupang.orderItem.OrderItem;
 import com.example.fake_coupang.orderItem.OrderItemRepository;
 import com.example.fake_coupang.placementSpec.PlacementKind;
@@ -13,10 +14,13 @@ import com.example.fake_coupang.room.dto.RoomResponse;
 import com.example.fake_coupang.roomPlacement.PlacementSurface;
 import com.example.fake_coupang.roomPlacement.RoomPlacement;
 import com.example.fake_coupang.roomPlacement.RoomPlacementRepository;
+import com.example.fake_coupang.user.User;
+import com.example.fake_coupang.user.UserRepository;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -33,20 +37,25 @@ public class RoomService {
     private final RoomPlacementRepository placementRepository;
     private final PlacementSpecRepository specRepository;
     private final OrderItemRepository orderItemRepository;
+    private final UserRepository userRepository;
 
     public RoomService(
             RoomRepository roomRepository,
             RoomPlacementRepository placementRepository,
             PlacementSpecRepository specRepository,
-            OrderItemRepository orderItemRepository
+            OrderItemRepository orderItemRepository,
+            UserRepository userRepository
     ) {
         this.roomRepository = roomRepository;
         this.placementRepository = placementRepository;
         this.specRepository = specRepository;
         this.orderItemRepository = orderItemRepository;
+        this.userRepository = userRepository;
     }
 
-    public static class RoomApiException extends RuntimeException {
+    public static class RoomApiException
+            extends RuntimeException {
+
         private final HttpStatus status;
         private final String code;
         private final String itemId;
@@ -76,7 +85,10 @@ public class RoomService {
         }
     }
 
-    private RoomApiException bad(String code, String itemId) {
+    private RoomApiException bad(
+            String code,
+            String itemId
+    ) {
         return new RoomApiException(
                 HttpStatus.BAD_REQUEST,
                 code,
@@ -85,51 +97,135 @@ public class RoomService {
         );
     }
 
-    private Room getOrCreateRoom() {
-        return roomRepository.findFirstByOrderByRoomIdAsc()
+    private void validateUser(Long userId) {
+
+        if (userId == null || userId <= 0) {
+            throw bad("INVALID_USER_ID", null);
+        }
+
+        if (!userRepository.existsById(userId)) {
+            throw new RoomApiException(
+                    HttpStatus.NOT_FOUND,
+                    "USER_NOT_FOUND",
+                    "사용자를 찾을 수 없습니다.",
+                    null
+            );
+        }
+    }
+
+    private Room getOrCreateRoom(Long userId) {
+
+        return roomRepository.findByUser_Id(userId)
                 .orElseGet(() -> {
+                    User user = userRepository.findById(userId)
+                            .orElseThrow(() -> new ResponseStatusException(
+                                    HttpStatus.NOT_FOUND,
+                                    "사용자를 찾을 수 없습니다."
+                            ));
+
                     Room room = new Room();
-                    room.setVersion(0);
+                    room.setUser(user);
                     room.setUpdatedAt(LocalDateTime.now());
+
                     return roomRepository.saveAndFlush(room);
                 });
     }
 
-    @Transactional
-    public RoomResponse getRoom() {
-        Room room = getOrCreateRoom();
-
-        Map<Long, OrderItem> owned = getOrderItems();
-
-        List<PlacementSpec> specs = specRepository.findAll()
+    private Map<Long, OrderItem> getOrderItems(
+            Long userId
+    ) {
+        return orderItemRepository
+                .findByUserIdAndOrderStatus(
+                        userId,
+                        OrderStatus.DELIVERED
+                )
                 .stream()
-                .filter(s -> owned.containsKey(s.getProductId()))
-                .sorted(Comparator.comparing(PlacementSpec::getProductId))
-                .toList();
+                .collect(Collectors.toMap(
+                        OrderItem::getId,
+                        Function.identity(),
+                        (first, second) -> first,
+                        LinkedHashMap::new
+                ));
+    }
 
-        List<RoomItemResponse> items = specs.stream()
-                .map(this::toItemResponse)
-                .toList();
+    private Map<Long, PlacementSpec> getSpecs() {
+
+        return specRepository.findAll()
+                .stream()
+                .collect(Collectors.toMap(
+                        PlacementSpec::getProductId,
+                        Function.identity()
+                ));
+    }
+
+    @Transactional
+    public RoomResponse getRoom(Long userId) {
+
+        validateUser(userId);
+
+        Room room = getOrCreateRoom(userId);
+
+        Map<Long, OrderItem> owned =
+                getOrderItems(userId);
+
+        Map<Long, PlacementSpec> specs =
+                getSpecs();
+
+        List<RoomItemResponse> items =
+                new ArrayList<>();
+
+        for (OrderItem orderItem : owned.values()) {
+
+            Long productId =
+                    orderItem.getProduct().getId();
+
+            PlacementSpec spec =
+                    specs.get(productId);
+
+            if (spec == null) {
+                continue;
+            }
+
+            items.add(toItemResponse(orderItem, spec));
+        }
 
         Map<String, Map<String, Object>> placements =
                 new LinkedHashMap<>();
 
-        for (RoomPlacement rp :
-                placementRepository.findByRoom_RoomId(room.getRoomId())) {
+        List<RoomPlacement> saved =
+                placementRepository.findByRoom_RoomId(
+                        room.getRoomId()
+                );
 
-            String id = rp.getOrderItem()
-                    .getProduct().getId().toString();
+        for (RoomPlacement rp : saved) {
 
-            Map<String, Object> p = new LinkedHashMap<>();
+            Long orderItemId =
+                    rp.getOrderItem().getId();
+
+            if (!owned.containsKey(orderItemId)) {
+                continue;
+            }
+
+            String id = orderItemId.toString();
+
+            Map<String, Object> p =
+                    new LinkedHashMap<>();
 
             if (rp.getSurface() == PlacementSurface.FLOOR) {
+
                 p.put("x", rp.getCellX());
                 p.put("z", rp.getCellY());
                 p.put("rot", rp.getRotation());
+
             } else {
-                p.put("wall",
+
+                p.put(
+                        "wall",
                         rp.getSurface() == PlacementSurface.BACK
-                                ? "back" : "left");
+                                ? "back"
+                                : "left"
+                );
+
                 p.put("col", rp.getCellX());
                 p.put("row", rp.getCellY());
             }
@@ -137,26 +233,33 @@ public class RoomService {
             if (placements.putIfAbsent(id, p) != null) {
                 throw new RoomApiException(
                         HttpStatus.CONFLICT,
-                        "DUPLICATE_PRODUCT",
-                        "동일 상품의 배치가 중복되어 있습니다.",
+                        "DUPLICATE_ORDER_ITEM",
+                        "주문 항목의 배치가 중복되어 있습니다.",
                         id
                 );
             }
         }
 
         return new RoomResponse(
-                new RoomResponse.RoomInfo(room.getVersion()),
+                new RoomResponse.RoomInfo(
+                        room.getVersion()
+                ),
                 items,
                 placements
         );
     }
 
-    private RoomItemResponse toItemResponse(PlacementSpec spec) {
-        var product = spec.getProduct();
-        boolean floor = spec.getKind() == PlacementKind.FLOOR;
+    private RoomItemResponse toItemResponse(
+            OrderItem orderItem,
+            PlacementSpec spec
+    ) {
+        var product = orderItem.getProduct();
+
+        boolean floor =
+                spec.getKind() == PlacementKind.FLOOR;
 
         return new RoomItemResponse(
-                product.getId().toString(),
+                orderItem.getId().toString(),
                 product.getName(),
                 floor ? "floor" : "wall",
                 spec.getWidthCells(),
@@ -173,20 +276,15 @@ public class RoomService {
         );
     }
 
-    private Map<Long, OrderItem> getOrderItems() {
-        return orderItemRepository.findAll().stream()
-                .sorted(Comparator.comparing(OrderItem::getId))
-                .collect(Collectors.toMap(
-                        item -> item.getProduct().getId(),
-                        Function.identity(),
-                        (first, second) -> first,
-                        LinkedHashMap::new
-                ));
-    }
-
-    private record Rect(int x, int z, int w, int d) {
+    private record Rect(
+            int x,
+            int z,
+            int w,
+            int d
+    ) {
         boolean contains(Rect b) {
-            return b.x >= x && b.z >= z
+            return b.x >= x
+                    && b.z >= z
                     && b.x + b.w <= x + w
                     && b.z + b.d <= z + d;
         }
@@ -201,6 +299,7 @@ public class RoomService {
 
     private record Candidate(
             String id,
+            OrderItem orderItem,
             PlacementSpec spec,
             PlacementSaveRequest.Placement request,
             PlacementSurface surface,
@@ -210,17 +309,23 @@ public class RoomService {
 
     @Transactional
     public PlacementSaveResponse save(
+            Long userId,
             PlacementSaveRequest request
     ) {
+        validateUser(userId);
+
         if (request == null
                 || request.version() == null
                 || request.placements() == null) {
             throw bad("INVALID_REQUEST", null);
         }
 
-        Room room = getOrCreateRoom();
+        Room room = getOrCreateRoom(userId);
 
-        if (!Objects.equals(room.getVersion(), request.version())) {
+        if (!Objects.equals(
+                room.getVersion(),
+                request.version()
+        )) {
             throw new RoomApiException(
                     HttpStatus.CONFLICT,
                     "VERSION_CONFLICT",
@@ -230,67 +335,89 @@ public class RoomService {
         }
 
         Map<Long, PlacementSpec> specs =
-                specRepository.findAll().stream()
-                        .collect(Collectors.toMap(
-                                PlacementSpec::getProductId,
-                                Function.identity()
-                        ));
+                getSpecs();
 
-        Map<Long, OrderItem> owned = getOrderItems();
-        List<Candidate> candidates = new ArrayList<>();
+        Map<Long, OrderItem> owned =
+                getOrderItems(userId);
+
+        List<Candidate> candidates =
+                new ArrayList<>();
 
         for (var entry : request.placements().entrySet()) {
+
             String id = entry.getKey();
+
             var p = entry.getValue();
 
-            Long productId;
+            Long orderItemId;
 
             try {
-                productId = Long.valueOf(id);
+                orderItemId = Long.valueOf(id);
             } catch (NumberFormatException e) {
                 throw bad("INVALID_ITEM_ID", id);
             }
 
-            PlacementSpec spec = specs.get(productId);
+            OrderItem orderItem = owned.get(orderItemId);
+
+            if (orderItem == null) {
+                throw bad("ITEM_NOT_OWNED", id);
+            }
+
+            Long productId =
+                    orderItem.getProduct().getId();
+
+            PlacementSpec spec =
+                    specs.get(productId);
 
             if (spec == null) {
                 throw bad("UNKNOWN_ITEM", id);
-            }
-
-            if (!owned.containsKey(productId)) {
-                throw bad("ITEM_NOT_OWNED", id);
             }
 
             if (p == null) {
                 throw bad("INVALID_POSITION", id);
             }
 
-            candidates.add(parseCandidate(id, spec, p));
+            candidates.add(
+                    parseCandidate(
+                            id,
+                            orderItem,
+                            spec,
+                            p
+                    )
+            );
         }
 
         validate(candidates);
 
         List<RoomPlacement> old =
-                placementRepository.findByRoom_RoomId(room.getRoomId());
+                placementRepository.findByRoom_RoomId(
+                        room.getRoomId()
+                );
 
         placementRepository.deleteAll(old);
         placementRepository.flush();
 
-        List<RoomPlacement> next = new ArrayList<>();
+        List<RoomPlacement> next =
+                new ArrayList<>();
 
         for (Candidate c : candidates) {
-            Long productId = Long.valueOf(c.id());
 
-            RoomPlacement rp = new RoomPlacement();
+            RoomPlacement rp =
+                    new RoomPlacement();
+
             rp.setRoom(room);
-            rp.setOrderItem(owned.get(productId));
+            rp.setOrderItem(c.orderItem());
+            rp.setUnitIndex(1);
             rp.setSurface(c.surface());
 
             if (c.surface() == PlacementSurface.FLOOR) {
+
                 rp.setCellX(c.request().x());
                 rp.setCellY(c.request().z());
                 rp.setRotation(c.request().rot());
+
             } else {
+
                 rp.setCellX(c.request().col());
                 rp.setCellY(c.request().row());
                 rp.setRotation(0);
@@ -302,13 +429,17 @@ public class RoomService {
         placementRepository.saveAll(next);
 
         room.setUpdatedAt(LocalDateTime.now());
+
         roomRepository.saveAndFlush(room);
 
-        return new PlacementSaveResponse(room.getVersion());
+        return new PlacementSaveResponse(
+                room.getVersion()
+        );
     }
 
     private Candidate parseCandidate(
             String id,
+            OrderItem orderItem,
             PlacementSpec spec,
             PlacementSaveRequest.Placement p
     ) {
@@ -318,9 +449,12 @@ public class RoomService {
         }
 
         if (spec.getKind() == PlacementKind.FLOOR) {
-            if (p.x() == null || p.z() == null
+
+            if (p.x() == null
+                    || p.z() == null
                     || p.rot() == null
-                    || p.rot() < 0 || p.rot() > 3
+                    || p.rot() < 0
+                    || p.rot() > 3
                     || spec.getDepthCells() == null
                     || spec.getDepthCells() <= 0
                     || p.wall() != null
@@ -338,20 +472,32 @@ public class RoomService {
                 d = tmp;
             }
 
-            Rect rect = new Rect(p.x(), p.z(), w, d);
+            Rect rect = new Rect(
+                    p.x(),
+                    p.z(),
+                    w,
+                    d
+            );
 
-            if (rect.x() < 0 || rect.z() < 0
+            if (rect.x() < 0
+                    || rect.z() < 0
                     || (long) rect.x() + w > GRID
                     || (long) rect.z() + d > GRID) {
                 throw bad("OUTSIDE_ROOM", id);
             }
 
             return new Candidate(
-                    id, spec, p, PlacementSurface.FLOOR, rect
+                    id,
+                    orderItem,
+                    spec,
+                    p,
+                    PlacementSurface.FLOOR,
+                    rect
             );
         }
 
         if (spec.getKind() == PlacementKind.WALL) {
+
             if (p.wall() == null
                     || p.col() == null
                     || p.row() == null
@@ -363,39 +509,58 @@ public class RoomService {
                 throw bad("INVALID_POSITION", id);
             }
 
-            PlacementSurface surface = switch (p.wall()) {
-                case "back" -> PlacementSurface.BACK;
-                case "left" -> PlacementSurface.LEFT;
-                default -> throw bad("INVALID_WALL", id);
-            };
+            PlacementSurface surface =
+                    switch (p.wall()) {
+                        case "back" -> PlacementSurface.BACK;
+                        case "left" -> PlacementSurface.LEFT;
+                        default -> throw bad(
+                                "INVALID_WALL",
+                                id
+                        );
+                    };
 
             Rect rect = new Rect(
-                    p.col(), p.row(),
+                    p.col(),
+                    p.row(),
                     spec.getWidthCells(),
                     spec.getHeightCells()
             );
 
-            if (rect.x() < 0 || rect.z() < 0
+            if (rect.x() < 0
+                    || rect.z() < 0
                     || (long) rect.x() + rect.w() > GRID
                     || (long) rect.z() + rect.d() > WALL_ROWS) {
                 throw bad("OUTSIDE_ROOM", id);
             }
 
-            return new Candidate(id, spec, p, surface, rect);
+            return new Candidate(
+                    id,
+                    orderItem,
+                    spec,
+                    p,
+                    surface,
+                    rect
+            );
         }
 
         throw bad("INVALID_KIND", id);
     }
 
-
-    private void validate(List<Candidate> candidates) {
-
-        Map<String, String> layers = new HashMap<>();
+    private void validate(
+            List<Candidate> candidates
+    ) {
+        Map<String, String> layers =
+                new HashMap<>();
 
         for (Candidate c : candidates) {
 
             if (c.surface() != PlacementSurface.FLOOR) {
-                layers.put(c.id(), c.surface().name());
+
+                layers.put(
+                        c.id(),
+                        c.surface().name()
+                );
+
                 continue;
             }
 
@@ -404,10 +569,18 @@ public class RoomService {
             if (c.spec().isStackable()) {
 
                 boolean hasBase = candidates.stream()
-                        .filter(b -> !b.id().equals(c.id()))
-                        .filter(b -> b.surface() == PlacementSurface.FLOOR)
-                        .filter(b -> b.spec().isSurface())
-                        .anyMatch(b -> b.rect().contains(c.rect()));
+                        .filter(b ->
+                                !b.id().equals(c.id())
+                        )
+                        .filter(b ->
+                                b.surface() == PlacementSurface.FLOOR
+                        )
+                        .filter(b ->
+                                b.spec().isSurface()
+                        )
+                        .anyMatch(b ->
+                                b.rect().contains(c.rect())
+                        );
 
                 if (hasBase) {
                     layer = "top";
@@ -421,11 +594,14 @@ public class RoomService {
 
             Candidate a = candidates.get(i);
 
-            for (int j = i + 1; j < candidates.size(); j++) {
+            for (int j = i + 1;
+                 j < candidates.size();
+                 j++) {
 
                 Candidate b = candidates.get(j);
 
-                if (!layers.get(a.id()).equals(layers.get(b.id()))) {
+                if (!layers.get(a.id())
+                        .equals(layers.get(b.id()))) {
                     continue;
                 }
 
@@ -435,5 +611,4 @@ public class RoomService {
             }
         }
     }
-
 }

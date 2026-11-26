@@ -1,4 +1,3 @@
-
 package com.example.fake_coupang.room;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -9,4 +8,6 @@ public interface RoomRepository
         extends JpaRepository<Room, Long> {
 
     Optional<Room> findFirstByOrderByRoomIdAsc();
+
+    Optional<Room> findByUser_Id(Long userId);
 }
